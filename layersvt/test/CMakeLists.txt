@@ -19,7 +19,8 @@ if (ANDROID)
 endif()
 
 function(LayerTest NAME)
-	set(TEST_FILENAME ./test_${NAME}.cpp)
+    string(TOLOWER ${NAME} LOWER_NAME)
+    set(TEST_FILENAME ./test_${LOWER_NAME}.cpp)
     set(TEST_NAME test_${NAME}_layer)
 
     file(GLOB TEST_JSON_FILES ${CMAKE_SOURCE_DIR}/profiles/test/data/)
@@ -47,7 +48,7 @@ function(LayerTest NAME)
     endif()
 endfunction()
 
-set(LAYER_TEST_FILES api_dump monitor screenshot)
+set(LAYER_TEST_FILES api_dump monitor screenshot CPUTiming)
 
 foreach(test_item ${LAYER_TEST_FILES})
     # If the target doesn't exist continue.
