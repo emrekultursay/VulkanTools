@@ -87,7 +87,7 @@ jobs:
       - uses: lukka/get-cmake@latest
       - name: Build
         run: |
-          ANDROID_NDK_ROOT=${ANDROID_NDK_LATEST_HOME} scripts/android.py \
+          ANDROID_NDK_HOME=${ANDROID_NDK_LATEST_HOME} scripts/android.py \
             --config Release \
             --app-abi "arm64-v8a x86_64"
 
