@@ -1,7 +1,7 @@
 {
     "file_format_version" : "1.2.0",
     "layer": {
-        "name": "CPUTiming",
+        "name": "VK_LAYER_GOOGLE_CPUTiming",
         "type": "GLOBAL",
         "library_path": "@JSON_LIBRARY_PATH@",
         "api_version": "@JSON_VERSION@",
