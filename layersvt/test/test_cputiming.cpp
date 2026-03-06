@@ -20,7 +20,7 @@
 
 #include <gtest/gtest.h>
 
-static const char* kLayerName = "CPUTiming";
+static const char* kLayerName = "VK_LAYER_GOOGLE_CPUTiming";
 
 class CpuTimingTests : public VkTestFramework {
    public:

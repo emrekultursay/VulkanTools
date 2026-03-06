@@ -107,7 +107,7 @@ EXPORT_FUNCTION VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateInstanceLayerPropertie
                                                                                   VkLayerProperties* pProperties) {
     Timer timer(CPUTimingCategory::Other, "vkEnumerateInstanceLayerProperties");
     static const VkLayerProperties layerProperties[] = {{
-        "CPUTiming",
+        "VK_LAYER_GOOGLE_CPUTiming",
         VK_MAKE_VERSION(1, 4, VK_HEADER_VERSION),  // specVersion
         VK_MAKE_VERSION(0, 2, 0),                  // implementationVersion
         "layer: CPUTiming",
@@ -121,7 +121,7 @@ EXPORT_FUNCTION VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateDeviceLayerProperties(
                                                                                 VkLayerProperties* pProperties) {
     Timer timer(CPUTimingCategory::VkPhysicalDevice, "vkEnumerateDeviceLayerProperties");
     static const VkLayerProperties layerProperties[] = {{
-        "CPUTiming",
+        "VK_LAYER_GOOGLE_CPUTiming",
         VK_MAKE_VERSION(1, 4, VK_HEADER_VERSION),
         VK_MAKE_VERSION(0, 2, 0),
         "layer: CPUTiming",
