@@ -37,8 +37,10 @@ static PFN_vkVoidFunction debug_marker_known_instance_functions(const char* pNam
 static PFN_vkVoidFunction debug_marker_known_device_functions(const char* pName) {
     if (strcmp(pName, "vkCreateDevice") == 0) return reinterpret_cast<PFN_vkVoidFunction>(vkCreateDevice);
     if (strcmp(pName, "vkEnumerateDeviceLayerProperties") == 0) return reinterpret_cast<PFN_vkVoidFunction>(vkEnumerateDeviceLayerProperties);
+#if __ANDROID__
+    // This does NOT work on Linux.
     if (strcmp(pName, "vkEnumerateDeviceExtensionProperties") == 0) return reinterpret_cast<PFN_vkVoidFunction>(vkEnumerateDeviceExtensionProperties);
-    
+#endif
     // VK_EXT_debug_marker
     if (strcmp(pName, "vkCmdDebugMarkerBeginEXT") == 0) return reinterpret_cast<PFN_vkVoidFunction>(vkCmdDebugMarkerBeginEXT);
     if (strcmp(pName, "vkCmdDebugMarkerEndEXT") == 0) return reinterpret_cast<PFN_vkVoidFunction>(vkCmdDebugMarkerEndEXT);
@@ -59,48 +61,24 @@ static PFN_vkVoidFunction debug_marker_known_device_functions(const char* pName)
     return nullptr;
 }
 
+// On Android, the name of these two functions can optionally start with `VK_LAYER_GOOGLE_DebugMarker`
+// instead of `vk`. The result seems to be identical. AGI uses `DebugMarker` prefix (that's the
+// official name of their layer).
 EXPORT_FUNCTION VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vkGetInstanceProcAddr(VkInstance instance, const char* pName) {
-    PFN_vkVoidFunction func = debug_marker_known_instance_functions(pName);
-    if (func) {
-        return func;
-    }
-    
-    // If it's a device function, we can also return it here if we want to support GIPA for device functions.
-    func = debug_marker_known_device_functions(pName);
-    if (func) {
-        return func;
-    }
+    PFN_vkVoidFunction instance_func = debug_marker_known_instance_functions(pName);
+    if (instance_func) return instance_func;
+    PFN_vkVoidFunction device_func = debug_marker_known_device_functions(pName);
+    if (device_func) return device_func;
 
-    if (instance == nullptr) {
-        return nullptr;
-    }
-
-    auto table = instance_dispatch_table(instance);
-    if (table == NULL) {
-        return nullptr;
-    }
-    
-    if (table->GetInstanceProcAddr == NULL) {
-        return nullptr;
-    }
-
-    return table->GetInstanceProcAddr(instance, pName);
+    if (instance_dispatch_table(instance)->GetInstanceProcAddr == NULL) return nullptr;
+    return instance_dispatch_table(instance)->GetInstanceProcAddr(instance, pName);
 }
 
 EXPORT_FUNCTION VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vkGetDeviceProcAddr(VkDevice device, const char* pName) {
-    PFN_vkVoidFunction func = debug_marker_known_device_functions(pName);
-    if (func) {
-        return func;
-    }
+    PFN_vkVoidFunction device_func = debug_marker_known_device_functions(pName);
+    if (device_func) return device_func;
 
-    if (device == nullptr) {
-        return nullptr;
-    }
-
-    if (device_dispatch_table(device)->GetDeviceProcAddr == NULL) {
-        return nullptr;
-    }
-    
+    if (device_dispatch_table(device)->GetDeviceProcAddr == NULL) return nullptr;
     return device_dispatch_table(device)->GetDeviceProcAddr(device, pName);
 }
 

@@ -49,6 +49,10 @@ VKAPI_ATTR void VKAPI_CALL vkCmdInsertDebugUtilsLabelEXT(VkCommandBuffer command
 
 // Required for VK_EXT_debug_utils. Tracks object name state.
 VKAPI_ATTR VkResult VKAPI_CALL vkSetDebugUtilsObjectNameEXT(VkDevice device, const VkDebugUtilsObjectNameInfoEXT* pNameInfo) {
+#ifdef __ANDROID__
+    // TODO: Remove this. It's for debuging only.
+    __android_log_print(ANDROID_LOG_WARN, "DebugMarker", "vkSetDebugUtilsObjectNameEXT");
+#endif
     DebugMarker::Get().SetDebugObjectName((uint64_t)device, (int32_t)pNameInfo->objectType, pNameInfo->objectHandle, pNameInfo->pObjectName);
     if (device_dispatch_table(device)->SetDebugUtilsObjectNameEXT) {
         VkResult result = device_dispatch_table(device)->SetDebugUtilsObjectNameEXT(device, pNameInfo);

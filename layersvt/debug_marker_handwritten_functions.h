@@ -54,7 +54,14 @@ extern "C" {
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator,
                                                 VkInstance* pInstance) {
     std::call_once(g_perfetto_init_flag, []() { InitializeDebugMarkerPerfetto(); });
-
+#ifdef __ANDROID__
+    // TODO: Remove this. It's for debugging only.
+    __android_log_print(ANDROID_LOG_WARN, "DebugMarker", "vkCreateInstance called with %d extensions",
+                        pCreateInfo->enabledExtensionCount);
+    for (uint32_t i = 0; i < pCreateInfo->enabledExtensionCount; ++i) {
+        __android_log_print(ANDROID_LOG_WARN, "DebugMarker", "Extension %d: %s", i, pCreateInfo->ppEnabledExtensionNames[i]);
+    }
+#endif
     // Get the function pointer
     VkLayerInstanceCreateInfo* chain_info = get_chain_info(pCreateInfo, VK_LAYER_LINK_INFO);
     assert(chain_info->u.pLayerInfo != 0);
@@ -70,7 +77,9 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(const VkInstanceCreateInfo* pCre
     VkResult result = fpCreateInstance(pCreateInfo, pAllocator, pInstance);
     if (result == VK_SUCCESS) {
         initInstanceTable(*pInstance, fpGetInstanceProcAddr);
-        
+
+        // TODO(emrekultursay):  Evaluate if we need this block or what purpose
+        //   it serves.
         // Eagerly enumerate physical devices and map them to the instance.
         // This ensures we have the mapping even if the app bypasses our enumeration hooks.
         PFN_vkEnumeratePhysicalDevices fpEnumeratePhysicalDevices = (PFN_vkEnumeratePhysicalDevices)fpGetInstanceProcAddr(*pInstance, "vkEnumeratePhysicalDevices");
@@ -158,15 +167,39 @@ EXPORT_FUNCTION VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateInstanceExtensionPrope
         {VK_EXT_DEBUG_UTILS_EXTENSION_NAME, VK_EXT_DEBUG_UTILS_SPEC_VERSION},
     };
 
+#ifdef __ANDROID__
+    // TODO: Remove this. It's for debugging only.
+    if (pLayerName == nullptr) {
+        __android_log_print(ANDROID_LOG_WARN, "DebugMarker", "vkEnumerateInstanceExtensionProperties called with NULL");
+    } else {
+        __android_log_print(ANDROID_LOG_WARN, "DebugMarker", "vkEnumerateInstanceExtensionProperties called with %s\n", pLayerName);
+    }
+#endif
+
     if (pLayerName != nullptr && strcmp(pLayerName, "VK_LAYER_GOOGLE_DebugMarker") == 0) {
         return util_GetExtensionProperties(ARRAY_SIZE(instanceExtensions), instanceExtensions, pPropertyCount, pProperties);
     }
 
-    return VK_ERROR_LAYER_NOT_PRESENT;
+#ifdef __ANDROID__
+    // This LOG is never printed at runtime.
+    __android_log_print(ANDROID_LOG_WARN, "DebugMarker", "vkEnumerateInstanceExtensionProperties returning FALL_THROUGH");
+#endif
+
+    // In AGI, this is what's done.
+    *pPropertyCount = 0;
+    return VK_SUCCESS;
+
+    // This is what we used to have.
+    // return VK_ERROR_LAYER_NOT_PRESENT;
 }
 
 EXPORT_FUNCTION VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateInstanceLayerProperties(uint32_t* pPropertyCount,
                                                                                   VkLayerProperties* pProperties) {
+#ifdef __ANDROID__
+    // TODO: Remove this. It's for debugging only.
+    __android_log_print(ANDROID_LOG_WARN, "DebugMarker", "vkEnumerateInstanceLayerProperties called with pProperties = %p\n",
+                        pProperties);
+#endif
     static const VkLayerProperties layerProperties[] = {{
         "VK_LAYER_GOOGLE_DebugMarker",
         VK_MAKE_VERSION(1, 4, VK_HEADER_VERSION),  // specVersion
@@ -190,10 +223,24 @@ EXPORT_FUNCTION VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateDeviceLayerProperties(
     return util_GetLayerProperties(ARRAY_SIZE(layerProperties), layerProperties, pPropertyCount, pProperties);
 }
 
+#ifdef __ANDROID__
+// This is not working on Linux. It interferes with the Mesa driver layer.
 EXPORT_FUNCTION VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateDeviceExtensionProperties(VkPhysicalDevice physicalDevice,
                                                                                     const char* pLayerName,
                                                                                     uint32_t* pPropertyCount,
                                                                                     VkExtensionProperties* pProperties) {
+#ifdef __ANDROID__
+    if (pLayerName == nullptr) {
+        __android_log_print(ANDROID_LOG_WARN, "DebugMarker",
+                            "vkEnumerateDeviceExtensionProperties called with pLayerName = nullptr, pProperties = %p\n",
+                            pProperties);
+    } else {
+        __android_log_print(ANDROID_LOG_WARN, "DebugMarker",
+                            "vkEnumerateDeviceExtensionProperties called with pLayerName = %s, pProperties = %p\n", pLayerName,
+                            pProperties);
+    }
+#endif
+
     static const VkExtensionProperties deviceExtensions[] = {
         {VK_EXT_DEBUG_MARKER_EXTENSION_NAME, VK_EXT_DEBUG_MARKER_SPEC_VERSION},
     };
@@ -201,6 +248,10 @@ EXPORT_FUNCTION VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateDeviceExtensionPropert
     if (pLayerName != nullptr && strcmp(pLayerName, "VK_LAYER_GOOGLE_DebugMarker") == 0) {
         return util_GetExtensionProperties(ARRAY_SIZE(deviceExtensions), deviceExtensions, pPropertyCount, pProperties);
     }
+
+#ifdef __ANDROID__
+    __android_log_print(ANDROID_LOG_WARN, "DebugMarker", "vkEnumerateDeviceExtensionProperties FALL_THROUGH");
+#endif
 
     VkInstance vk_instance = DebugMarker::Get().GetVkInstance(physicalDevice);
 
@@ -228,6 +279,6 @@ EXPORT_FUNCTION VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateDeviceExtensionPropert
     }
     return VK_SUCCESS;
 }
-
+#endif
 
 } // extern "C"
